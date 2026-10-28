@@ -13,7 +13,19 @@ Funciona sin internet y guarda todo **solo en tu celular** (no hay servidor ni c
 | **Progreso** | Peso, cintura, gráfica, metas −5 % / −10 %, grabación de video semanal y logros. |
 | **Más** | Recordatorios, calendario `.ics`, sueño, salud, fuentes, perfil y respaldo. |
 
-## Cómo ponerla en tu celular (gratis)
+## Tu app publicada
+
+**<https://arnaldo-puerta.github.io/axfit/>** (GitHub Pages, repositorio `arnaldo-puerta/axfit`).
+
+Para publicar cambios: sube el número `VERSION` en `sw.js` y luego
+
+```bash
+git add -A && git commit -m "Cambios" && git push
+```
+
+En 1–2 minutos se actualiza; en el celular cierra y vuelve a abrir la app.
+
+## Otras formas de publicarla
 
 Para instalarla necesita estar en internet con HTTPS. La forma más fácil:
 
