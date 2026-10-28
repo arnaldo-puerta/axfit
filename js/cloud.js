@@ -28,11 +28,8 @@ const Cloud = (() => {
   function errMsg(j, status) {
     const m = j?.msg || j?.error_description || j?.message || j?.error || `Error ${status}`;
     if (/invalid login credentials/i.test(m)) return 'Correo o contraseña incorrectos';
-    if (/email not confirmed/i.test(m)) return 'Primero confirma tu correo (revisa tu bandeja y spam)';
-    if (/already registered/i.test(m)) return 'Ese correo ya tiene cuenta: inicia sesión';
-    if (/password.*(6|characters)/i.test(m)) return 'La contraseña debe tener al menos 6 caracteres';
+    if (/email not confirmed/i.test(m)) return 'Ese usuario no está confirmado: márcalo como confirmado en Supabase';
     if (/rate limit/i.test(m)) return 'Demasiados intentos. Espera unos minutos';
-    if (/signups? not allowed/i.test(m)) return 'El registro está cerrado: solo puede entrar la cuenta del dueño';
     return m;
   }
   // Renueva el token si está por vencer (dura 1 hora).
@@ -48,12 +45,7 @@ const Cloud = (() => {
     }
   }
 
-  async function signUp(email, password) {
-    const redirect = encodeURIComponent(location.origin + location.pathname);
-    const r = await req(`/auth/v1/signup?redirect_to=${redirect}`, { method: 'POST', auth: false, body: { email, password } });
-    if (r.access_token) { keep(fromAuth(r)); return 'in'; }
-    return 'confirm'; // Supabase manda un correo para confirmar
-  }
+  // Las cuentas solo se crean desde Supabase (Authentication → Users): la app no tiene registro.
   async function signIn(email, password) {
     keep(fromAuth(await req('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password } })));
   }
@@ -61,18 +53,6 @@ const Cloud = (() => {
     clearTimeout(pushTimer);
     try { if (session) await req('/auth/v1/logout', { method: 'POST' }); } catch { /* igual cerramos aquí */ }
     keep(null);
-  }
-  // Al confirmar el correo, Supabase regresa a la app con #access_token=… en la dirección.
-  async function fromRedirect() {
-    const h = new URLSearchParams(location.hash.slice(1));
-    if (!h.get('access_token')) return false;
-    session = { access: h.get('access_token'), refresh: h.get('refresh_token'), exp: Date.now() + (+h.get('expires_in') || 3600) * 1000 };
-    history.replaceState(null, '', location.pathname + '#mas');
-    try {
-      const u = await req('/auth/v1/user');
-      keep({ ...session, id: u.id, email: u.email });
-      return true;
-    } catch { keep(null); return false; }
   }
 
   async function download() {
@@ -99,7 +79,7 @@ const Cloud = (() => {
   }
 
   return {
-    enabled, signUp, signIn, signOut, fromRedirect, download, upload, schedulePush, push,
+    enabled, signIn, signOut, download, upload, schedulePush, push,
     get user() { return session ? { id: session.id, email: session.email } : null; },
   };
 })();

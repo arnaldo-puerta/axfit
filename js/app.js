@@ -105,10 +105,7 @@ function cloudForm() {
   return `<form id="fCloud">
       <label>Correo</label><input name="email" type="email" autocomplete="email" required>
       <label>Contraseña</label><input name="password" type="password" autocomplete="current-password" minlength="6" required>
-      <div class="grid2" style="margin-top:12px">
-        <button class="primary" type="submit">Entrar</button>
-        <button type="button" data-act="cloudSignUp">Crear cuenta</button>
-      </div>
+      <button class="primary block" type="submit" style="margin-top:14px">Entrar</button>
     </form>`;
 }
 // Con Supabase conectado, la app no muestra nada hasta iniciar sesión.
@@ -1157,15 +1154,6 @@ document.addEventListener('click', async (e) => {
       localStorage.removeItem(STORE_KEY);
       S = structuredClone(DEFAULT_STATE); location.hash = '#hoy'; render(); toast('Sesión cerrada');
     },
-    cloudSignUp: async () => {
-      const f = el.closest('form');
-      if (!f.reportValidity()) return;
-      try {
-        const r = await Cloud.signUp(f.email.value.trim(), f.password.value);
-        if (r === 'in') { await cloudSync(); toast('Cuenta creada'); }
-        else openModal(`<h2>${ic('cloud')}Revisa tu correo</h2><p>Te mandamos un enlace a <b>${esc(f.email.value)}</b>. Ábrelo en este celular para confirmar tu cuenta (revisa también spam).</p><button class="block" data-act="closeModal">Entendido</button>`);
-      } catch (e) { toast(e.message, 3500); }
-    },
     cycleTheme: () => { const ks = Object.keys(THEMES); setTheme(ks[(ks.indexOf(getTheme()) + 1) % ks.length]); toast(`Tema: ${THEMES[getTheme()].n}`); },
     nextQuote: () => { S.quoteOffset++; save(); render(); },
     porque: () => openModal(`<h2>${ic('heart')}Tu porqué</h2><p class="quote">${esc(S.profile.porque)}</p><button class="block" data-act="closeModal">Cerrar</button>`),
@@ -1269,4 +1257,4 @@ window.addEventListener('online', () => cloudSync());
 setInterval(checkReminders, 30000);
 render();
 checkReminders();
-Cloud.fromRedirect().then((ok) => { if (ok) toast('Correo confirmado. Sesión iniciada'); cloudSync(); });
+cloudSync();

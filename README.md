@@ -46,7 +46,7 @@ y abre <http://localhost:8765>.
 
 ## Datos en la nube (Supabase)
 
-- La app pide correo y contraseña para entrar. Tu progreso se guarda en Supabase y se sincroniza solo; al cerrar sesión se quita del celular.
+- La app pide correo y contraseña para entrar. Las cuentas solo se crean en Supabase (*Authentication → Users → Add user*); la app no tiene registro. Tu progreso se guarda en Supabase y se sincroniza solo; al cerrar sesión se quita del celular.
 - Los **videos no se suben**: viven en el celular (descárgalos a tu galería).
 - Tabla y reglas de seguridad: `supabase/schema.sql`. Conexión: `js/config.js` (solo la *publishable key*; nunca la *secret/service_role*).
 
