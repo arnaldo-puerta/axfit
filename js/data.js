@@ -31,11 +31,11 @@ const FOODS = {
 };
 
 const MEAL_INFO = {
-  desayuno: { t: 'Desayuno',     icon: '🍳' },
-  colacion: { t: 'Colación',     icon: '🥜' },
-  comida:   { t: 'Comida',       icon: '🍗' },
-  pre:      { t: 'Pre‑entreno',  icon: '🍌' },
-  cena:     { t: 'Cena',         icon: '🥗' },
+  desayuno: { t: 'Desayuno',     icon: 'egg' },
+  colacion: { t: 'Colación',     icon: 'apple' },
+  comida:   { t: 'Comida',       icon: 'utensils' },
+  pre:      { t: 'Pre‑entreno',  icon: 'zap' },
+  cena:     { t: 'Cena',         icon: 'bowl' },
 };
 
 // Horarios de comida según el tipo de día
@@ -283,17 +283,17 @@ const SOS = [
 ];
 
 const BADGES = [
-  { id: 'primer_paso', n: 'Primer paso', d: 'Completa tu primer entrenamiento', icon: '👟' },
-  { id: 'racha3', n: 'En llamas', d: '3 días seguidos cumpliendo', icon: '🔥' },
-  { id: 'racha7', n: 'Semana completa', d: '7 días seguidos cumpliendo', icon: '⭐' },
-  { id: 'racha30', n: 'Imparable', d: '30 días seguidos cumpliendo', icon: '🏆' },
-  { id: 'video1', n: 'En cámara', d: 'Graba tu primer video de progreso', icon: '🎥' },
-  { id: 'video4', n: 'Documentalista', d: '4 videos de progreso', icon: '🎬' },
-  { id: 'menos2', n: '−2 kg', d: 'Baja 2 kg desde el inicio', icon: '📉' },
-  { id: 'menos5', n: '−5%', d: 'Baja el 5% de tu peso inicial', icon: '💪' },
-  { id: 'menos10', n: '−10%', d: 'Baja el 10% de tu peso inicial', icon: '🚀' },
-  { id: 'entrenos10', n: '10 entrenamientos', d: 'Completa 10 sesiones', icon: '🏋️' },
-  { id: 'entrenos50', n: '50 entrenamientos', d: 'Completa 50 sesiones', icon: '🥇' },
+  { id: 'primer_paso', n: 'Primer paso', d: 'Completa tu primer entrenamiento', icon: 'walk' },
+  { id: 'racha3', n: 'En llamas', d: '3 días seguidos cumpliendo', icon: 'flame' },
+  { id: 'racha7', n: 'Semana completa', d: '7 días seguidos cumpliendo', icon: 'star' },
+  { id: 'racha30', n: 'Imparable', d: '30 días seguidos cumpliendo', icon: 'trophy' },
+  { id: 'video1', n: 'En cámara', d: 'Graba tu primer video de progreso', icon: 'video' },
+  { id: 'video4', n: 'Documentalista', d: '4 videos de progreso', icon: 'calendar' },
+  { id: 'menos2', n: '−2 kg', d: 'Baja 2 kg desde el inicio', icon: 'trendDown' },
+  { id: 'menos5', n: '−5%', d: 'Baja el 5% de tu peso inicial', icon: 'target' },
+  { id: 'menos10', n: '−10%', d: 'Baja el 10% de tu peso inicial', icon: 'award' },
+  { id: 'entrenos10', n: '10 entrenamientos', d: 'Completa 10 sesiones', icon: 'dumbbell' },
+  { id: 'entrenos50', n: '50 entrenamientos', d: 'Completa 50 sesiones', icon: 'trophy' },
 ];
 
 const SOURCES = [

@@ -151,6 +151,25 @@ function openModal(html) {
 function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
 $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && S.profile) closeModal(); });
 
+// ---------- Tema ----------
+const THEMES = { auto: { n: 'Auto', i: 'monitor' }, light: { n: 'Claro', i: 'sun' }, dark: { n: 'Oscuro', i: 'moon' } };
+function getTheme() { try { return localStorage.getItem('axfit-theme') || 'auto'; } catch { return 'auto'; } }
+function setTheme(t) {
+  try { t === 'auto' ? localStorage.removeItem('axfit-theme') : localStorage.setItem('axfit-theme', t); } catch { /* sin storage */ }
+  if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  syncThemeColor(); render();
+}
+function syncThemeColor() {
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#fafafa');
+}
+function renderThemeBtn() {
+  const t = getTheme();
+  $('#themeBtn').innerHTML = ic(THEMES[t].i, 'lg');
+  $('#themeBtn').title = `Tema: ${THEMES[t].n}`;
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', syncThemeColor);
+
 const VIEWS = { hoy: viewHoy, comida: viewComida, ejercicio: viewEjercicio, progreso: viewProgreso, mas: viewMas };
 let foodDay = new Date().getDay();
 function currentTab() { const t = location.hash.slice(1); return VIEWS[t] ? t : 'hoy'; }
@@ -160,7 +179,8 @@ function render() {
   document.querySelectorAll('.tabbar a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
   $('#view').innerHTML = VIEWS[tab]();
   const st = streak();
-  $('#topStreak').textContent = st ? `🔥 ${st}` : '';
+  $('#topStreak').innerHTML = st ? `${ic('flame')}${st}` : '';
+  renderThemeBtn();
   if (tab === 'progreso') renderVideos();
 }
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
@@ -168,7 +188,7 @@ window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); }
 // ---------- Onboarding ----------
 function onboarding() {
   openModal(`
-    <h1>Bienvenido(a) a AxFit 💪</h1>
+    <h1>Bienvenido(a) a AxFit</h1>
     <p class="muted">Tu plan personal para bajar grasa cuidando que sigues en crecimiento. Todo se guarda solo en tu celular.</p>
     <form id="fProfile">
       ${profileFields({ nombre: '', sexo: '', edad: 17, estatura: 170, peso: 95, inicio: dateKey() })}
@@ -188,7 +208,7 @@ function onboarding() {
     S.profile.porque = f.get('porque') || '';
     S.weights = [{ d: S.profile.inicio, kg: S.profile.peso }];
     save(); closeModal(); render();
-    toast('¡Listo! Día 1 empieza hoy 🔥');
+    toast('¡Listo! Día 1 empieza hoy');
   });
 }
 function profileFields(p) {
@@ -220,36 +240,36 @@ function readProfile(f) {
 function agenda(dow) {
   const t = WEEK_PLAN[dow];
   if (dow >= 1 && dow <= 4) return [
-    ['5:20', 'Despertar · vaso grande de agua, luces prendidas, agua fría en la cara'],
-    ['5:45', `${MEAL_INFO.desayuno.icon} Desayuno ligero (10 min)${S.settings.vitB ? ' + 💊 Complejo B' : ''}`],
-    ['6:10', '🚌 Camión · duerme con alarma a las 7:30'],
-    ['7:30', '⏰ Despierta en el camión · toma agua y despéjate antes de bajar'],
-    ['8:00', '💼 Trabajo · tu mejor hora para concentrarte. ½ litro de agua antes de las 10'],
-    ['10:30', `${MEAL_INFO.colacion.icon} Colación`],
-    ['13:00', `${MEAL_INFO.comida.icon} Comida: 30 min comer + 20 min caminar`],
-    ['17:00', '🚌 Salida · pre‑entreno en el camión'],
-    ['19:30', 'Llegar · ropa de entrenar, agua'],
-    ['20:00', `🏋️ ${t.n}`],
-    ['21:10', `${MEAL_INFO.cena.icon} Cena`],
-    ['21:30', '💻 Tareas y programación (bloque enfocado, cel en silencio)'],
-    ['22:45', '🥣 Deja lista la avena del desayuno y la mochila'],
-    [S.settings.sleepTime, '😴 Pantallas fuera · a dormir'],
+    ['5:20', 'sun', 'Despertar · vaso grande de agua, luces prendidas, agua fría en la cara'],
+    ['5:45', MEAL_INFO.desayuno.icon, `Desayuno ligero (10 min)${S.settings.vitB ? ' + Complejo B' : ''}`],
+    ['6:10', 'bus', 'Camión · duerme con alarma a las 7:30'],
+    ['7:30', 'alarm', 'Despierta en el camión · toma agua y despéjate antes de bajar'],
+    ['8:00', 'briefcase', 'Trabajo · tu mejor hora para concentrarte. ½ litro de agua antes de las 10'],
+    ['10:30', MEAL_INFO.colacion.icon, 'Colación'],
+    ['13:00', MEAL_INFO.comida.icon, 'Comida: 30 min comer + 20 min caminar'],
+    ['17:00', 'bus', 'Salida · pre‑entreno en el camión'],
+    ['19:30', 'home', 'Llegar · ropa de entrenar, agua'],
+    ['20:00', 'dumbbell', t.n],
+    ['21:10', MEAL_INFO.cena.icon, 'Cena'],
+    ['21:30', 'laptop', 'Tareas y programación (bloque enfocado, cel en silencio)'],
+    ['22:45', 'pot', 'Deja lista la avena del desayuno y la mochila'],
+    [S.settings.sleepTime, 'moon', 'Pantallas fuera · a dormir'],
   ];
   if (dow === 5) return [
-    ['7:00', `${MEAL_INFO.desayuno.icon} Desayuno`],
-    ['—', '🏫 CBTis: reportes, dudas y clases. Lleva colación en la mochila'],
-    ['14:00', `${MEAL_INFO.comida.icon} Comida`],
-    ['Tarde', `🚶 ${t.n}: ${t.d}`],
-    ['20:30', `${MEAL_INFO.cena.icon} Cena`],
-    [S.settings.sleepTime, '😴 A dormir · recupera sueño de la semana'],
+    ['7:00', MEAL_INFO.desayuno.icon, 'Desayuno'],
+    ['—', 'school', 'CBTis: reportes, dudas y clases. Lleva colación en la mochila'],
+    ['14:00', MEAL_INFO.comida.icon, 'Comida'],
+    ['Tarde', 'walk', `${t.n}: ${t.d}`],
+    ['20:30', MEAL_INFO.cena.icon, 'Cena'],
+    [S.settings.sleepTime, 'moon', 'A dormir · recupera sueño de la semana'],
   ];
   return [
-    ['8:30', `${MEAL_INFO.desayuno.icon} Desayuno`],
-    ['Mañana', dow === 0 ? '🎥 Video de progreso + pesarte + medir cintura' : '📚 Tareas y trabajos pendientes'],
-    ['14:30', `${MEAL_INFO.comida.icon} Comida (si salen: proteína + verduras + agua)`],
-    ['Tarde', dow === 0 ? '🍳 Preparar comida de la semana (60–90 min)' : `🚶 ${t.n} con tus abuelos`],
-    ['20:30', `${MEAL_INFO.cena.icon} Cena`],
-    [dow === 0 ? S.settings.sleepTime : '23:30', '😴 A dormir'],
+    ['8:30', MEAL_INFO.desayuno.icon, 'Desayuno'],
+    ['Mañana', dow === 0 ? 'video' : 'book', dow === 0 ? 'Video de progreso + pesarte + medir cintura' : 'Tareas y trabajos pendientes'],
+    ['14:30', MEAL_INFO.comida.icon, 'Comida (si salen: proteína + verduras + agua)'],
+    ['Tarde', dow === 0 ? 'pot' : 'walk', dow === 0 ? 'Preparar comida de la semana (60–90 min)' : `${t.n} con tus abuelos`],
+    ['20:30', MEAL_INFO.cena.icon, 'Cena'],
+    [dow === 0 ? S.settings.sleepTime : '23:30', 'moon', 'A dormir'],
   ];
 }
 function viewHoy() {
@@ -265,61 +285,61 @@ function viewHoy() {
   const hello = p.nombre ? `Hola, ${esc(p.nombre)}` : 'Hola';
   return `
     <section class="card hero">
-      <div class="row between"><h1>${hello} 👋</h1><span class="pill accent">Semana ${weekNum()}</span></div>
+      <div class="row between"><h1>${hello}</h1><span class="pill accent">Semana ${weekNum()}</span></div>
       <p class="muted">${DAY_NAMES[dow]} ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })} · ${phase().n}</p>
       <p class="quote">“${esc(MOTIVATION[qi])}”</p>
       <div class="row wrap">
         <button class="small ghost" data-act="nextQuote">Otra frase</button>
-        <button class="small ghost" data-act="sos">🆘 Necesito ayuda</button>
-        ${p.porque ? '<button class="small ghost" data-act="porque">❤️ Mi porqué</button>' : ''}
+        <button class="small ghost" data-act="sos">${ic('buoy')}Necesito ayuda</button>
+        ${p.porque ? `<button class="small ghost" data-act="porque">${ic('heart')}Mi porqué</button>` : ''}
       </div>
     </section>
 
     ${videoDue() ? `
     <section class="card warn">
-      <div class="row between"><h2>🎥 Toca tu video de progreso</h2></div>
+      <h2>${ic('video')}Toca tu video de progreso</h2>
       <p>${S.videos.length ? 'Ya pasó una semana desde tu último video.' : 'Graba tu video del día 1. En unos meses vas a agradecer tenerlo.'}</p>
-      <a class="btn primary" href="#progreso">Grabar ahora</a>
+      <a class="btn primary" href="#progreso">${ic('record')}Grabar ahora</a>
     </section>` : ''}
 
     <section class="card">
-      <div class="row between"><h2>${MEAL_INFO.comida.icon} Comidas de hoy</h2><span class="pill">${mealsDone}/5</span></div>
+      <div class="row between"><h2>${ic('utensils')}Comidas de hoy</h2><span class="pill">${mealsDone}/5</span></div>
       ${Object.entries(menu.comidas).map(([k, m]) => `
         <label class="check ${d.meals[k] ? 'done' : ''}">
           <input type="checkbox" data-act="meal" data-k="${k}" ${d.meals[k] ? 'checked' : ''}>
-          <span class="t"><b>${MEAL_INFO[k].icon} ${MEAL_INFO[k].t}</b><small>${esc(m.plato)} · ${MEAL_TIMES[menu.tipo][k]}</small></span>
+          <span class="t"><b>${ic(MEAL_INFO[k].icon)}${MEAL_INFO[k].t}</b><small>${esc(m.plato)} · ${MEAL_TIMES[menu.tipo][k]}</small></span>
         </label>`).join('')}
       ${S.settings.vitB ? `
         <label class="check ${d.vitB ? 'done' : ''}">
           <input type="checkbox" data-act="vitB" ${d.vitB ? 'checked' : ''}>
-          <span class="t"><b>💊 Complejo B</b><small>Con el desayuno · revisa que no pase de 80 mg de B6</small></span>
+          <span class="t"><b>${ic('pill')}Complejo B</b><small>Con el desayuno · revisa que no pase de 80 mg de B6</small></span>
         </label>` : ''}
-      <a href="#comida" class="small">Ver porciones exactas →</a>
+      <a href="#comida" class="small">Ver porciones exactas${ic('chevronRight')}</a>
     </section>
 
     ${dow >= 1 && dow <= 5 && nm < 12 * 60 ? `
     <section class="card">
-      <h2>⚡ Mañana con energía</h2>
+      <h2>${ic('zap')}Mañana con energía</h2>
       <ul>${MORNING.slice(1, 5).map((x) => `<li><b>${x.t}:</b> ${x.d}</li>`).join('')}</ul>
-      <a href="#mas" class="small">Ver todo sobre energía y foco →</a>
+      <a href="#mas" class="small">Ver todo sobre energía y foco${ic('chevronRight')}</a>
     </section>` : ''}
 
     <section class="card">
-      <div class="row between"><h2>🏋️ ${esc(plan.n)}</h2>${d.workout ? '<span class="pill accent">✓ Hecho</span>' : `<span class="pill">${plan.hora}</span>`}</div>
+      <div class="row between"><h2>${ic('dumbbell')}${esc(plan.n)}</h2>${d.workout ? `<span class="pill accent">${ic('check')}Hecho</span>` : `<span class="pill">${plan.hora}</span>`}</div>
       <p class="muted">${esc(plan.d)}</p>
       ${guidedAvailable(dow)
-        ? `<button class="primary block" data-act="startWorkout">${d.workout ? 'Repetir entrenamiento' : '▶ Empezar entrenamiento'}</button>`
-        : `<button class="${d.workout ? 'ghost' : 'primary'} block" data-act="toggleWorkout">${d.workout ? 'Desmarcar' : '✓ Marcar como hecho'}</button>`}
+        ? `<button class="primary block" data-act="startWorkout">${d.workout ? 'Repetir entrenamiento' : `${ic('play')}Empezar entrenamiento`}</button>`
+        : `<button class="${d.workout ? 'ghost' : 'primary'} block" data-act="toggleWorkout">${d.workout ? 'Desmarcar' : `${ic('check')}Marcar como hecho`}</button>`}
     </section>
 
     <section class="card">
-      <div class="row between"><h2>💧 Agua</h2><span class="pill">${d.agua}/${vasos} vasos</span></div>
-      <div class="water">${Array.from({ length: vasos }, (_, i) => `<button data-act="water" data-n="${i + 1}" class="${i < d.agua ? 'on' : ''}" aria-label="${i + 1} vasos">💧</button>`).join('')}</div>
+      <div class="row between"><h2>${ic('droplet')}Agua</h2><span class="pill">${d.agua}/${vasos} vasos</span></div>
+      <div class="water">${Array.from({ length: vasos }, (_, i) => `<button data-act="water" data-n="${i + 1}" class="${i < d.agua ? 'on' : ''}" aria-label="${i + 1} vasos">${ic('droplet')}</button>`).join('')}</div>
       <small>Meta ≈ ${T.agua} L (vasos de 250 ml). Más si hace calor o entrenas.</small>
     </section>
 
     <section class="card">
-      <h2>😴 ¿Cuánto dormiste anoche?</h2>
+      <h2>${ic('moon')}¿Cuánto dormiste anoche?</h2>
       <div class="row">
         <input type="number" min="0" max="14" step="0.5" value="${d.sueno ?? ''}" placeholder="horas" data-act="sleep" style="max-width:120px">
         <span class="muted">${sleepMsg(d.sueno)}</span>
@@ -327,21 +347,21 @@ function viewHoy() {
     </section>
 
     <section class="card">
-      <h2>🗓️ Tu día</h2>
-      <ul class="timeline">${ag.map(([h, t], i) => `<li class="${i === nowIdx ? 'now' : ''}"><span class="h">${h}</span><span>${t}</span></li>`).join('')}</ul>
+      <h2>${ic('calendar')}Tu día</h2>
+      <ul class="timeline">${ag.map(([h, icon, t], i) => `<li class="${i === nowIdx ? 'now' : ''}"><span class="h">${h}</span>${ic(icon)}<span>${esc(t)}</span></li>`).join('')}</ul>
     </section>`;
 }
 function sleepMsg(h) {
   if (h == null || h === '') return 'Meta: 8 h o más';
-  if (h < 6) return '⚠️ Muy poco. Hoy entrena suave y duérmete temprano.';
+  if (h < 6) return 'Muy poco. Hoy entrena suave y duérmete temprano.';
   if (h < 7.5) return 'Mejorable. Intenta acostarte 30 min antes.';
-  return '✅ ¡Bien! Así tu cuerpo quema grasa y crece mejor.';
+  return '¡Bien! Así tu cuerpo quema grasa y crece mejor.';
 }
 function guidedAvailable(dow) { return ['fuerza', 'cardio'].includes(WEEK_PLAN[dow].tipo); }
 
 function showSOS() {
   openModal(`
-    <h2>🆘 ¿Qué está pasando?</h2>
+    <h2>${ic('buoy')}¿Qué está pasando?</h2>
     ${SOS.map((s) => `<details><summary>${s.t}</summary><ul>${s.d.map((x) => `<li>${x}</li>`).join('')}</ul></details>`).join('')}
     ${S.profile.porque ? `<div class="card hero"><b>Tu porqué:</b><p>${esc(S.profile.porque)}</p></div>` : ''}
     <button class="block" data-act="closeModal">Cerrar</button>`);
@@ -377,7 +397,7 @@ function viewComida() {
       ${Object.entries(menu.comidas).map(([k, m]) => {
         const mt = mealTotals(m);
         return `<div class="meal">
-          <div class="row between"><b>${MEAL_INFO[k].icon} ${MEAL_INFO[k].t}</b><small>${MEAL_TIMES[menu.tipo][k]}</small></div>
+          <div class="row between"><b>${ic(MEAL_INFO[k].icon)}${MEAL_INFO[k].t}</b><small>${MEAL_TIMES[menu.tipo][k]}</small></div>
           <div>${esc(m.plato)}</div>
           <ul class="items">${m.items.map(([id, , lbl]) => `<li>${esc(FOODS[id].n)} — ${esc(lbl)}</li>`).join('')}</ul>
           <small>≈ ${Math.round(mt.kcal)} kcal · ${Math.round(mt.p)} g proteína</small>
@@ -386,12 +406,12 @@ function viewComida() {
     </section>
 
     <section class="card">
-      <h2>📏 Reglas de oro</h2>
+      <h2>${ic('ruler')}Reglas de oro</h2>
       ${FOOD_RULES.map((r) => `<details><summary>${r.t}</summary><p>${r.d}</p></details>`).join('')}
     </section>
 
     <section class="card">
-      <h2>🛒 Lista del súper semanal</h2>
+      <h2>${ic('cart')}Lista del súper semanal</h2>
       <p class="muted">Pensada para gastar poco: mercado o tianguis &gt; supermercado. Huevo, atún y pierna de pollo son la proteína más barata.</p>
       ${SHOPPING.map((g, gi) => `<details ${gi === 0 ? 'open' : ''}><summary>${g.g}</summary>
         ${g.items.map((it, ii) => { const id = `s${gi}_${ii}`; const on = (S.shop || {})[id]; return `<label class="check ${on ? 'done' : ''}"><input type="checkbox" data-act="shop" data-id="${id}" ${on ? 'checked' : ''}><span class="t"><b style="font-weight:500">${esc(it)}</b></span></label>`; }).join('')}
@@ -400,13 +420,13 @@ function viewComida() {
     </section>
 
     <section class="card">
-      <h2>🍳 Preparar la comida (meal prep)</h2>
+      <h2>${ic('pot')}Preparar la comida (meal prep)</h2>
       <p class="muted">Con tus horarios, cocinar el domingo es lo que hace posible el plan.</p>
       ${MEAL_PREP.map((m) => `<details><summary>${m.t}</summary><ul>${m.items.map((x) => `<li>${x}</li>`).join('')}</ul></details>`).join('')}
     </section>
 
     <section class="card">
-      <h2>📚 Tabla de alimentos</h2>
+      <h2>${ic('list')}Tabla de alimentos</h2>
       <p class="muted">Valores aproximados por porción (USDA FoodData Central / SMAE).</p>
       <div class="table-wrap"><table>
         <tr><th>Alimento</th><th>Porción</th><th class="n">kcal</th><th class="n">Prot</th><th class="n">Carb</th><th class="n">Grasa</th></tr>
@@ -442,7 +462,7 @@ function routineFor(dow) {
 function exCard(id, ph, sets) {
   const e = EXERCISES[id];
   return `<details><summary>${e.n} <small class="muted">· ${sets ? `${sets} × ${repsFor(id, ph)}` : e.m}</small></summary>
-    <ol>${e.how.map((h) => `<li>${h}</li>`).join('')}</ol><p class="muted">💡 ${e.tip}</p></details>`;
+    <ol>${e.how.map((h) => `<li>${h}</li>`).join('')}</ol><p class="muted tip">${ic('bulb')}<span>${e.tip}</span></p></details>`;
 }
 function viewEjercicio() {
   const ph = phase(), dow = new Date().getDay(), plan = WEEK_PLAN[dow], r = routineFor(dow), d = today();
@@ -459,7 +479,7 @@ function viewEjercicio() {
     </section>
 
     <section class="card">
-      <div class="row between"><h2>Hoy: ${esc(plan.n)}</h2>${d.workout ? '<span class="pill accent">✓ Hecho</span>' : ''}</div>
+      <div class="row between"><h2>${ic('dumbbell')}Hoy: ${esc(plan.n)}</h2>${d.workout ? `<span class="pill accent">${ic('check')}Hecho</span>` : ''}</div>
       <p class="muted">${plan.hora} · ${esc(plan.d)}</p>
       ${r.main ? `<h3>Calentamiento (7 min)</h3><ul>${WARMUP.map((x) => `<li>${x}</li>`).join('')}</ul>
         <h3>Fuerza (${ph.series} series, descanso ${ph.descanso} s)</h3>${r.main.map((id) => exCard(id, ph, ph.series)).join('')}
@@ -468,18 +488,18 @@ function viewEjercicio() {
         <h3>Intervalos: ${ph.cardio.work} s trabajo / ${ph.cardio.rest} s descanso × ${ph.cardio.rondas}</h3>${r.cardio.map((id) => exCard(id)).join('')}
         <h3 style="margin-top:10px">Abdomen (2 series)</h3>${r.core.map((id) => exCard(id, ph, 2)).join('')}` : ''}
       ${guidedAvailable(dow)
-        ? `<button class="primary block" style="margin-top:12px" data-act="startWorkout">▶ Empezar con temporizador</button>`
-        : `<button class="${d.workout ? 'ghost' : 'primary'} block" data-act="toggleWorkout">${d.workout ? 'Desmarcar' : '✓ Marcar como hecho'}</button>`}
+        ? `<button class="primary block" style="margin-top:12px" data-act="startWorkout">${ic('play')}Empezar con temporizador</button>`
+        : `<button class="${d.workout ? 'ghost' : 'primary'} block" data-act="toggleWorkout">${d.workout ? 'Desmarcar' : `${ic('check')}Marcar como hecho`}</button>`}
     </section>
 
     <section class="card">
-      <h2>📅 Tu semana</h2>
-      <ul class="timeline">${WEEK_PLAN.map((w, i) => ({ w, i })).slice(1).concat({ w: WEEK_PLAN[0], i: 0 }).map(({ w, i }) =>
+      <h2>${ic('calendar')}Tu semana</h2>
+      <ul class="timeline plain">${WEEK_PLAN.map((w, i) => ({ w, i })).slice(1).concat({ w: WEEK_PLAN[0], i: 0 }).map(({ w, i }) =>
         `<li class="${i === dow ? 'now' : ''}"><span class="h">${DAY_SHORT[i]}</span><span><b>${esc(w.n)}</b><br><small>${w.hora} · ${esc(w.d)}</small></span></li>`).join('')}</ul>
     </section>
 
     <section class="card">
-      <h2>🚶 Movimiento extra (cuenta mucho)</h2>
+      <h2>${ic('walk')}Movimiento extra (cuenta mucho)</h2>
       <ul>
         <li>Usa 20 min de tu hora de comida para caminar después de comer.</li>
         <li>Bájate una parada antes del camión cuando puedas.</li>
@@ -489,12 +509,12 @@ function viewEjercicio() {
     </section>
 
     <section class="card">
-      <h2>📖 Todos los ejercicios</h2>
+      <h2>${ic('book')}Todos los ejercicios</h2>
       ${Object.keys(EXERCISES).map((id) => exCard(id)).join('')}
     </section>
 
     <section class="card warn">
-      <h2>⚠️ Seguridad</h2>
+      <h2>${ic('alert')}Seguridad</h2>
       <ul>
         <li>Técnica antes que peso o velocidad. El entrenamiento de fuerza es seguro a tu edad con buena técnica.</li>
         <li>Nada de saltos por ahora: con tu peso actual cuidan tus rodillas. Los saltos llegan cuando bajes más.</li>
@@ -555,7 +575,7 @@ function finishWorkout() {
   save(); checkBadges(); render();
   openModal(`
     <div style="text-align:center">
-      <div style="font-size:4rem">🏆</div>
+      <div class="done-icon">${ic('trophy', 'xl')}</div>
       <h1>¡Entrenamiento completado!</h1>
       <p>${mins} minutos. Llevas <b>${workoutsCount()}</b> ${workoutsCount() === 1 ? "sesión" : "sesiones"}.</p>
       <p class="quote">Ahora: cena con proteína, agua y a dormir temprano. Ahí es donde tu cuerpo cambia.</p>
@@ -573,26 +593,26 @@ function fmtSecs(s) { s = Math.max(0, Math.ceil(s)); return s >= 60 ? `${Math.fl
 function renderStep() {
   const st = W.steps[W.i], el = $('#workout');
   const pct = Math.round((W.i / W.steps.length) * 100);
-  const head = `<div class="row between"><button class="small ghost" data-act="wStop">✕ Salir</button>
+  const head = `<div class="row between"><button class="small ghost" data-act="wStop">${ic('x')}Salir</button>
     <div class="bar" style="flex:1"><i style="width:${pct}%"></i></div>
-    <button class="small ghost" data-act="wPrev" ${W.i === 0 ? 'disabled' : ''}>←</button></div>`;
+    <button class="small ghost" data-act="wPrev" ${W.i === 0 ? 'disabled' : ''} aria-label="Anterior">${ic('arrowLeft')}</button></div>`;
   el.className = 'workout';
   let body = '', foot = '';
   if (st.type === 'list') {
     body = `<div class="label">${st.sub}</div><div class="ex">${st.title}</div><ul>${st.list.map((x) => `<li>${x}</li>`).join('')}</ul>`;
-    foot = `<button class="primary block" data-act="wNext">Listo →</button>`;
+    foot = `<button class="primary block" data-act="wNext">Listo${ic('arrowRight')}</button>`;
   } else if (st.type === 'set') {
     const e = EXERCISES[st.ex];
     body = `<div class="label">Serie ${st.set} de ${st.of}</div><div class="ex">${e.n}</div>
       <div class="big" style="font-size:2.6rem">${st.reps}</div>
-      <ol>${e.how.map((h) => `<li>${h}</li>`).join('')}</ol><p class="muted">💡 ${e.tip}</p>`;
-    foot = `<button class="primary block" data-act="wNext">✓ Serie hecha</button>`;
+      <ol>${e.how.map((h) => `<li>${h}</li>`).join('')}</ol><p class="muted tip">${ic('bulb')}<span>${e.tip}</span></p>`;
+    foot = `<button class="primary block" data-act="wNext">${ic('check')}Serie hecha</button>`;
   } else if (st.type === 'rest') {
     el.classList.add('rest');
     W.end = Date.now() + st.secs * 1000;
     body = `<div class="label">Descanso</div><div class="big" id="wClock">${st.secs}</div>
       <p>Siguiente: <b>${EXERCISES[st.next].n}</b></p><p class="muted">Respira profundo. Toma agua.</p>`;
-    foot = `<div class="grid2"><button data-act="wAdd">+15 s</button><button class="primary" data-act="wNext">Saltar →</button></div>`;
+    foot = `<div class="grid2"><button data-act="wAdd">+15 s</button><button class="primary" data-act="wNext">Saltar${ic('arrowRight')}</button></div>`;
     W.timer = setInterval(() => {
       const left = (W.end - Date.now()) / 1000;
       const c = $('#wClock'); if (c) c.textContent = fmtSecs(left);
@@ -609,7 +629,7 @@ function renderStep() {
       <div class="label" style="font-size:1.2rem;color:var(--text)">${lbl}</div>
       <div class="big" id="wClock">${fmtSecs((s.end - Date.now()) / 1000)}</div>
       <div class="ex">${s.phase === 'rest' ? 'Siguiente: ' : ''}${ex.n}</div><p class="muted">${ex.tip}</p>`;
-    foot = `<div class="grid2"><button data-act="wPause">${s.paused ? '▶ Seguir' : '⏸ Pausa'}</button><button data-act="wNext">Saltar bloque →</button></div>`;
+    foot = `<div class="grid2"><button data-act="wPause">${s.paused ? `${ic('play')}Seguir` : `${ic('pause')}Pausa`}</button><button data-act="wNext">Saltar bloque${ic('arrowRight')}</button></div>`;
     W.timer = setInterval(tickInterval, 200);
   }
   el.innerHTML = `${head}<div class="wbody">${body}</div>${foot}`;
@@ -669,7 +689,7 @@ function viewProgreso() {
     </section>
 
     <section class="card">
-      <h2>⚖️ Registrar</h2>
+      <h2>${ic('scale')}Registrar</h2>
       <p class="muted">Pésate 1 vez por semana: mismo día, en ayunas, después de ir al baño. El peso diario sube y baja por agua y te puede desanimar.</p>
       <form id="fWeight" class="grid2">
         <div><label>Peso (kg)</label><input name="kg" type="number" step="0.1" min="30" max="250" placeholder="${w}"></div>
@@ -679,25 +699,25 @@ function viewProgreso() {
     </section>
 
     <section class="card chart">
-      <h2>📉 Peso</h2>
+      <h2>${ic('trendDown')}Peso</h2>
       ${weightChart()}
-      ${S.weights.length > 1 ? `<details><summary>Historial</summary><table>${[...S.weights].sort((a, b) => b.d.localeCompare(a.d)).map((x) => `<tr><td>${fmtDate(x.d)}</td><td class="n">${x.kg} kg</td><td class="n"><button class="small ghost" data-act="delWeight" data-d="${x.d}" aria-label="Borrar">✕</button></td></tr>`).join('')}</table></details>` : ''}
+      ${S.weights.length > 1 ? `<details><summary>Historial</summary><table>${[...S.weights].sort((a, b) => b.d.localeCompare(a.d)).map((x) => `<tr><td>${fmtDate(x.d)}</td><td class="n">${x.kg} kg</td><td class="n"><button class="small ghost" data-act="delWeight" data-d="${x.d}" aria-label="Borrar">${ic('x')}</button></td></tr>`).join('')}</table></details>` : ''}
     </section>
 
     <section class="card">
-      <div class="row between"><h2>🎥 Videos de progreso</h2><span class="pill">${S.videos.length}</span></div>
+      <div class="row between"><h2>${ic('video')}Videos de progreso</h2><span class="pill">${S.videos.length}</span></div>
       <p class="muted">Cada semana, mismo lugar, misma luz y misma ropa. Gira despacio: frente, lado, espalda, lado (5 s cada uno). Al final di: semana, peso, cintura y una victoria de la semana.</p>
       <div class="grid2">
-        <button class="primary" data-act="recordVideo">⏺ Grabar aquí</button>
-        <label class="btn" style="margin:0;color:var(--text);font-size:1rem">📱 Cámara del cel<input type="file" accept="video/*" capture="user" data-act="pickVideo" hidden></label>
+        <button class="primary" data-act="recordVideo">${ic('record')}Grabar aquí</button>
+        <label class="btn" style="margin:0;color:var(--text);font-size:1rem">${ic('phone')}Cámara del cel<input type="file" accept="video/*" capture="user" data-act="pickVideo" hidden></label>
       </div>
       <p class="muted" style="margin-top:8px">Los videos se guardan en la app, pero <b>descárgalos también a tu galería</b> como respaldo.</p>
       <div class="videos" id="videoList"></div>
     </section>
 
     <section class="card">
-      <h2>🏅 Logros</h2>
-      <div class="badges">${BADGES.map((b) => `<div class="badge ${S.badges[b.id] ? '' : 'off'}" title="${b.d}"><span class="i">${b.icon}</span><b>${b.n}</b><br>${b.d}</div>`).join('')}</div>
+      <h2>${ic('award')}Logros</h2>
+      <div class="badges">${BADGES.map((b) => `<div class="badge ${S.badges[b.id] ? '' : 'off'}" title="${b.d}"><span class="ib">${ic(b.icon)}</span><b>${b.n}</b><br>${b.d}</div>`).join('')}</div>
     </section>`;
 }
 function weightChart() {
@@ -751,7 +771,7 @@ async function saveVideo(blob) {
   }
   S.videos.push(meta);
   save(); checkBadges(); render();
-  toast(`🎥 Video de la semana ${meta.week} guardado`);
+  toast(`Video de la semana ${meta.week} guardado`);
 }
 function videoName(m) { return `AxFit-semana-${String(m.week).padStart(2, '0')}-${m.d}.${/mp4/.test(m.type) ? 'mp4' : 'webm'}`; }
 function downloadBlob(blob, name) {
@@ -797,8 +817,8 @@ async function recordVideo() {
     <video id="recPrev" class="rec-preview" autoplay muted playsinline></video>
     <p class="muted">Gira despacio: frente → lado → espalda → lado. Luego di tu peso, cintura y una victoria de la semana.</p>
     <div class="grid2">
-      <button id="recBtn" class="primary" data-act="recToggle">⏺ Grabar</button>
-      <button data-act="recFlip">🔄 Cambiar cámara</button>
+      <button id="recBtn" class="primary" data-act="recToggle">${ic('record')}Grabar</button>
+      <button data-act="recFlip">${ic('refresh')}Cambiar cámara</button>
     </div>
     <button class="block ghost" style="margin-top:8px" data-act="recCancel">Cancelar</button>`);
   $('#recPrev').srcObject = stream;
@@ -852,20 +872,25 @@ function viewMas() {
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   return `
     ${!isStandalone() ? `<section class="card hero">
-      <h2>📲 Instala AxFit en tu celular</h2>
+      <h2>${ic('phone')}Instala AxFit en tu celular</h2>
       ${installEvt ? '<button class="primary block" data-act="install">Instalar app</button>'
         : ios ? '<p>En iPhone: abre en Safari → botón Compartir → <b>Agregar a pantalla de inicio</b>. Necesitas iOS 16.4+ para las notificaciones.</p>'
         : '<p>En Chrome: menú ⋮ → <b>Instalar app</b> o <b>Agregar a pantalla principal</b>.</p>'}
     </section>` : ''}
 
     <section class="card">
-      <h2>❤️ Mi porqué</h2>
+      <h2>${ic('sun')}Apariencia</h2>
+      <div class="seg">${Object.entries(THEMES).map(([k, t]) => `<button class="${getTheme() === k ? 'on' : ''}" data-act="setTheme" data-t="${k}">${ic(t.i)}${t.n}</button>`).join('')}</div>
+    </section>
+
+    <section class="card">
+      <h2>${ic('heart')}Mi porqué</h2>
       <textarea id="porque" placeholder="¿Por qué empezaste? Escríbelo para los días difíciles.">${esc(p.porque)}</textarea>
       <button class="small" data-act="savePorque" style="margin-top:8px">Guardar</button>
     </section>
 
     <section class="card">
-      <h2>🔔 Recordatorios</h2>
+      <h2>${ic('bell')}Recordatorios</h2>
       ${perm === 'granted' && s.notif
         ? '<p class="pill accent">Notificaciones activadas</p>'
         : perm === 'denied'
@@ -886,12 +911,12 @@ function viewMas() {
       <div class="card warn" style="margin-top:12px">
         <b>Recomendado: agrega los recordatorios a tu calendario.</b>
         <p>Las notificaciones de una app web solo llegan de forma confiable cuando la app está abierta o en segundo plano reciente. El calendario de tu celular avisa <b>siempre</b>, aunque la app esté cerrada.</p>
-        <button class="primary block" data-act="ics">📅 Descargar recordatorios (.ics)</button>
+        <button class="primary block" data-act="ics">${ic('calendar')}Descargar recordatorios (.ics)</button>
       </div>
     </section>
 
     <section class="card">
-      <h2>😴 Tu sueño es tu punto débil</h2>
+      <h2>${ic('moon')}Tu sueño es tu punto débil</h2>
       <p>Te levantas a las 5:20 y te duermes a las 12–1 am: son <b>4–5 horas</b>. A tu edad necesitas <b>8–10</b> (Academia Americana de Medicina del Sueño).</p>
       <ul>
         <li>Dormir poco aumenta el hambre y los antojos de azúcar (sube la grelina) y frena la quema de grasa.</li>
@@ -902,19 +927,19 @@ function viewMas() {
     </section>
 
     <section class="card">
-      <h2>⚡ Energía y foco en la mañana</h2>
+      <h2>${ic('zap')}Energía y foco en la mañana</h2>
       ${MORNING.map((x) => `<details><summary>${x.t}</summary><p>${x.d}</p></details>`).join('')}
     </section>
 
     <section class="card">
-      <h2>💊 Complejo B</h2>
+      <h2>${ic('pill')}Complejo B</h2>
       <label class="check"><input type="checkbox" data-act="vitBSetting" ${s.vitB ? 'checked' : ''}><span class="t"><b>Lo estoy tomando</b><small>Muestra la casilla diaria en Hoy</small></span></label>
       <p>${VIT_B.intro}</p>
       ${VIT_B.puntos.map((x) => `<details><summary>${x.t}</summary><p>${x.d}</p></details>`).join('')}
     </section>
 
     <section class="card">
-      <h2>🩺 Salud y seguridad</h2>
+      <h2>${ic('stethoscope')}Salud y seguridad</h2>
       <ul>
         <li>Ve a tu Unidad de Medicina Familiar del IMSS (Seguro Facultativo de estudiante) y pide revisión y canalización a nutrición. Lleva esta app.</li>
         <li>Ritmo sano: 0.5–1 kg por semana. Las primeras 2 semanas puede bajar más por agua.</li>
@@ -924,13 +949,13 @@ function viewMas() {
     </section>
 
     <section class="card">
-      <h2>📚 Fuentes</h2>
+      <h2>${ic('book')}Fuentes</h2>
       ${SOURCES.map((x) => `<details><summary>${x.n}</summary><p>${x.uso}</p>${x.url ? `<a href="${x.url}" target="_blank" rel="noopener">${x.url}</a>` : ''}</details>`).join('')}
       <p class="muted" style="margin-top:8px">AxFit es una guía educativa, no sustituye la consulta con un profesional de la salud.</p>
     </section>
 
     <section class="card">
-      <h2>👤 Perfil</h2>
+      <h2>${ic('user')}Perfil</h2>
       <form id="fProfileEdit">
         ${profileFields(p)}
         <button class="small" type="submit" style="margin-top:10px">Guardar perfil</button>
@@ -938,7 +963,7 @@ function viewMas() {
     </section>
 
     <section class="card">
-      <h2>💾 Respaldo</h2>
+      <h2>${ic('database')}Respaldo</h2>
       <p class="muted">Tus datos viven solo en este celular. Exporta un respaldo de vez en cuando (no incluye los videos).</p>
       <div class="row wrap">
         <button class="small" data-act="export">⬇ Exportar datos</button>
@@ -961,7 +986,7 @@ async function enableNotif() {
       if (st.state === 'granted') await swReg.periodicSync.register('axfit-reminders', { minInterval: 60 * 60 * 1000 });
     }
   } catch { /* periodic sync opcional */ }
-  notify('🔔 ¡Listo!', 'Te avisaré para tu video semanal, tu entrenamiento y la hora de dormir.', 'hoy');
+  notify('¡Listo!', 'Te avisaré para tu video semanal, tu entrenamiento y la hora de dormir.', 'hoy');
   render();
 }
 async function notify(title, body, tab = 'hoy') {
@@ -978,13 +1003,13 @@ function checkReminders() {
   const s = S.settings, k = dateKey(), dow = new Date().getDay(), m = nowMin();
   const once = (id, fn) => { if (S.notified[id] !== k) { S.notified[id] = k; save(); fn(); } };
   if (dow === +s.videoDay && m >= hm(s.videoTime) && videoDue()) {
-    once('video', () => notify('🎥 Hoy toca tu video de progreso', `Semana ${weekNum()}. Pésate, mide tu cintura y graba. Tu yo del futuro te lo va a agradecer.`, 'progreso'));
+    once('video', () => notify('Hoy toca tu video de progreso', `Semana ${weekNum()}. Pésate, mide tu cintura y graba. Tu yo del futuro te lo va a agradecer.`, 'progreso'));
   }
   if (s.workoutReminder && dow >= 1 && dow <= 4 && m >= hm(s.workoutTime) && m < hm(s.workoutTime) + 75 && !today().workout) {
-    once('workout', () => notify(`🏋️ ${WEEK_PLAN[dow].n} a las 8`, MOTIVATION[(dow * 7 + new Date().getDate()) % MOTIVATION.length], 'ejercicio'));
+    once('workout', () => notify(`${WEEK_PLAN[dow].n} a las 8`, MOTIVATION[(dow * 7 + new Date().getDate()) % MOTIVATION.length], 'ejercicio'));
   }
   if (s.sleepReminder && m >= hm(s.sleepTime) && m < hm(s.sleepTime) + 90) {
-    once('sleep', () => notify('😴 Hora de dormir', 'Cierra la laptop. Dormir también es entrenar.', 'hoy'));
+    once('sleep', () => notify('Hora de dormir', 'Cierra la laptop. Dormir también es entrenar.', 'hoy'));
   }
 }
 // El service worker no puede leer localStorage: le dejamos la configuración en Cache Storage.
@@ -1015,11 +1040,11 @@ function downloadICS() {
       'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:-PT0M', 'END:VALARM', 'END:VEVENT'].join('\r\n');
   };
   const events = [
-    ev('video', nextDow(+s.videoDay, s.videoTime), 30, '🎥 AxFit: video de progreso + peso + cintura', 'Mismo lugar\\, misma luz\\, misma ropa. Frente\\, lado\\, espalda\\, lado. Abre AxFit para grabar.', `FREQ=WEEKLY;BYDAY=${BY[+s.videoDay]}`),
-    ev('prep', nextDow(0, '16:00'), 90, '🍳 AxFit: preparar comida de la semana', '12 huevos cocidos\\, pollo\\, arroz integral\\, verduras picadas.', 'FREQ=WEEKLY;BYDAY=SU'),
+    ev('video', nextDow(+s.videoDay, s.videoTime), 30, 'AxFit: video de progreso + peso + cintura', 'Mismo lugar\\, misma luz\\, misma ropa. Frente\\, lado\\, espalda\\, lado. Abre AxFit para grabar.', `FREQ=WEEKLY;BYDAY=${BY[+s.videoDay]}`),
+    ev('prep', nextDow(0, '16:00'), 90, 'AxFit: preparar comida de la semana', '12 huevos cocidos\\, pollo\\, arroz integral\\, verduras picadas.', 'FREQ=WEEKLY;BYDAY=SU'),
   ];
-  if (s.workoutReminder) events.push(ev('workout', nextDow(1, s.workoutTime), 60, '🏋️ AxFit: entrenamiento 8:00 pm', 'Abre AxFit y dale play. Solo 1 hora.', 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH'));
-  if (s.sleepReminder) events.push(ev('sleep', nextDow(0, s.sleepTime), 15, '😴 AxFit: hora de dormir', 'Cierra la laptop. Dormir también es entrenar.', 'FREQ=WEEKLY;BYDAY=SU,MO,TU,WE,TH'));
+  if (s.workoutReminder) events.push(ev('workout', nextDow(1, s.workoutTime), 60, 'AxFit: entrenamiento 8:00 pm', 'Abre AxFit y dale play. Solo 1 hora.', 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH'));
+  if (s.sleepReminder) events.push(ev('sleep', nextDow(0, s.sleepTime), 15, 'AxFit: hora de dormir', 'Cierra la laptop. Dormir también es entrenar.', 'FREQ=WEEKLY;BYDAY=SU,MO,TU,WE,TH'));
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//AxFit//ES', 'CALSCALE:GREGORIAN', ...events, 'END:VCALENDAR'].join('\r\n');
   downloadBlob(new Blob([ics], { type: 'text/calendar' }), 'AxFit-recordatorios.ics');
   toast('Abre el archivo descargado para agregarlo a tu calendario');
@@ -1032,8 +1057,10 @@ document.addEventListener('click', async (e) => {
   const a = el.dataset.act;
   const acts = {
     closeModal, sos: showSOS, whyCalc: showWhyCalc,
+    setTheme: () => setTheme(el.dataset.t),
+    cycleTheme: () => { const ks = Object.keys(THEMES); setTheme(ks[(ks.indexOf(getTheme()) + 1) % ks.length]); toast(`Tema: ${THEMES[getTheme()].n}`); },
     nextQuote: () => { S.quoteOffset++; save(); render(); },
-    porque: () => openModal(`<h2>❤️ Tu porqué</h2><p class="quote">${esc(S.profile.porque)}</p><button class="block" data-act="closeModal">Cerrar</button>`),
+    porque: () => openModal(`<h2>${ic('heart')}Tu porqué</h2><p class="quote">${esc(S.profile.porque)}</p><button class="block" data-act="closeModal">Cerrar</button>`),
     foodDay: () => { foodDay = +el.dataset.i; render(); },
     shopReset: () => { S.shop = {}; save(); render(); },
     toggleWorkout: () => { today().workout = !today().workout; save(); checkBadges(); render(); },
@@ -1053,8 +1080,8 @@ document.addEventListener('click', async (e) => {
     },
     delWeight: () => { if (S.weights.length > 1) { S.weights = S.weights.filter((w) => w.d !== el.dataset.d); save(); render(); } },
     water: () => { const n = +el.dataset.n; const d = today(); d.agua = d.agua === n ? n - 1 : n; save(); render(); },
-    savePorque: () => { S.profile.porque = $('#porque').value; save(); toast('Guardado ❤️'); },
-    enableNotif, testNotif: () => notify('🔥 Así se verán tus recordatorios', MOTIVATION[Math.floor(Math.random() * MOTIVATION.length)]),
+    savePorque: () => { S.profile.porque = $('#porque').value; save(); toast('Guardado'); },
+    enableNotif, testNotif: () => notify('Así se verán tus recordatorios', MOTIVATION[Math.floor(Math.random() * MOTIVATION.length)]),
     ics: downloadICS,
     install: async () => { installEvt?.prompt(); await installEvt?.userChoice; installEvt = null; render(); },
     export: () => downloadBlob(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }), `AxFit-respaldo-${dateKey()}.json`),
@@ -1094,7 +1121,7 @@ document.addEventListener('submit', (e) => {
     if (cm) { S.waist = S.waist.filter((w) => w.d !== k).concat({ d: k, cm }); }
     save(); checkBadges(); render();
     const prev = [...S.weights].sort((a, b) => a.d.localeCompare(b.d)).slice(-2);
-    toast(kg && prev.length === 2 && prev[1].kg < prev[0].kg ? `📉 −${(prev[0].kg - prev[1].kg).toFixed(1)} kg. ¡Sigue así!` : 'Guardado. La constancia gana 💪');
+    toast(kg && prev.length === 2 && prev[1].kg < prev[0].kg ? `−${(prev[0].kg - prev[1].kg).toFixed(1)} kg. ¡Sigue así!` : 'Guardado. La constancia gana');
   }
   if (e.target.id === 'fSettings') {
     e.preventDefault();
@@ -1114,6 +1141,8 @@ document.addEventListener('submit', (e) => {
 });
 
 // ---------- Arranque ----------
+document.querySelectorAll('[data-i]').forEach((el) => { el.outerHTML = ic(el.dataset.i); });
+renderThemeBtn(); syncThemeColor();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then((r) => { swReg = r; syncSWConfig(); }).catch(() => {});
 }
