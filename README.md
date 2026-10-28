@@ -44,6 +44,12 @@ py -m http.server 8765
 
 y abre <http://localhost:8765>.
 
+## Datos en la nube (Supabase)
+
+- Con sesión iniciada (*Más → Nube*), tu progreso se guarda en Supabase y se sincroniza solo. Sin sesión, todo se queda en el celular.
+- Los **videos no se suben**: viven en el celular (descárgalos a tu galería).
+- Tabla y reglas de seguridad: `supabase/schema.sql`. Conexión: `js/config.js` (solo la *publishable key*; nunca la *secret/service_role*).
+
 ## Sobre las notificaciones
 
 - **Calendario (lo más confiable):** en *Más → Recordatorios → Descargar recordatorios (.ics)*. Agrega a tu calendario el video semanal, el entrenamiento Lun–Jue, la hora de dormir y la preparación de comida del domingo. Te avisa aunque la app esté cerrada.
@@ -57,6 +63,10 @@ index.html            estructura
 css/styles.css        diseño (modo claro y oscuro automático)
 js/data.js            alimentos, menús, ejercicios, frases, fuentes  ← aquí se cambia el plan
 js/app.js             lógica
+js/cloud.js           sincronización con Supabase
+js/config.js          URL y llave pública de Supabase
+js/icons.js           íconos
+supabase/schema.sql   tabla y reglas de seguridad
 sw.js                 modo sin internet y recordatorios
 manifest.webmanifest  instalación
 ```

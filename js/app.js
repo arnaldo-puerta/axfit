@@ -1,4 +1,4 @@
-// AxFit — lógica de la app. Todo se guarda en el celular (localStorage + IndexedDB para videos).
+// AxFit — lógica de la app. Se guarda en el celular (localStorage + IndexedDB para videos) y, con sesión iniciada, en Supabase.
 'use strict';
 
 const STORE_KEY = 'axfit-v1';
@@ -51,9 +51,79 @@ function load() {
   } catch (e) { console.warn(e); }
   return structuredClone(DEFAULT_STATE);
 }
-function save() {
+function save(changed = true) {
+  if (changed) S.updatedAt = Date.now();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { toast('No se pudo guardar'); }
   syncSWConfig();
+  if (changed) Cloud.schedulePush(cloudData, cloudDone);
+}
+
+// ---------- Nube (Supabase) ----------
+// Los videos y los avisos ya mostrados son de cada celular: no se suben.
+function cloudData() {
+  const { videos, notified, cloud, ...rest } = S;
+  return rest;
+}
+function cloudDone(err) {
+  S.cloud = { ...S.cloud, at: err ? S.cloud?.at : Date.now(), err: err ? err.message : null };
+  save(false);
+  const el = $('#cloudStatus'); if (el) el.innerHTML = cloudStatus();
+}
+function cloudStatus() {
+  const c = S.cloud || {};
+  if (c.err) return `<span style="color:var(--danger)">${esc(c.err)}</span>`;
+  if (!c.at) return 'Aún no se sincroniza';
+  return `Sincronizado ${new Date(c.at).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}`;
+}
+function applyRemote(data) {
+  const keepLocal = { videos: S.videos, notified: S.notified, cloud: S.cloud };
+  S = { ...structuredClone(DEFAULT_STATE), ...data, settings: { ...DEFAULT_STATE.settings, ...data.settings }, ...keepLocal };
+  save(false);
+}
+// Compara la copia del celular con la de la nube y se queda con la más reciente.
+async function cloudSync({ manual = false } = {}) {
+  if (!Cloud.enabled() || !Cloud.user || !navigator.onLine) return;
+  try {
+    const remote = (await Cloud.download())?.data;
+    const firstTime = S.cloud?.user !== Cloud.user.id;
+    const localT = S.updatedAt || 0, remoteT = remote?.updatedAt || 0;
+    let useRemote = remote && (!S.profile || remoteT > localT);
+    if (remote && S.profile && firstTime) {
+      useRemote = confirm(`Ya tienes datos en la nube (último cambio: ${new Date(remoteT).toLocaleDateString('es-MX')}).\n\nAceptar = usar los de la nube\nCancelar = subir los de este celular`);
+    }
+    if (useRemote) { applyRemote(remote); closeModal(); }
+    else if (S.profile && (!remote || localT !== remoteT || firstTime)) await Cloud.upload(cloudData());
+    S.cloud = { user: Cloud.user.id, at: Date.now(), err: null };
+    save(false); render();
+    if (manual) toast('Sincronizado');
+  } catch (e) {
+    S.cloud = { ...S.cloud, err: e.message }; save(false);
+    if (manual || !Cloud.user) { toast(e.message); render(); }
+  }
+}
+function cloudForm() {
+  return `<form id="fCloud">
+      <label>Correo</label><input name="email" type="email" autocomplete="email" required>
+      <label>Contraseña</label><input name="password" type="password" autocomplete="current-password" minlength="6" required>
+      <div class="grid2" style="margin-top:12px">
+        <button class="primary" type="submit">Entrar</button>
+        <button type="button" data-act="cloudSignUp">Crear cuenta</button>
+      </div>
+    </form>`;
+}
+function cloudCard() {
+  if (!Cloud.enabled()) return `<section class="card"><h2>${ic('cloud')}Nube</h2><p class="muted">Falta conectar Supabase en <code>js/config.js</code>.</p></section>`;
+  const u = Cloud.user;
+  return `<section class="card">
+      <h2>${ic('cloud')}Nube</h2>
+      ${u ? `<p>Sesión iniciada como <b>${esc(u.email)}</b>. Tus datos se guardan solos en Supabase cuando hay internet.</p>
+        <p class="muted" id="cloudStatus">${cloudStatus()}</p>
+        <div class="row wrap">
+          <button class="small" data-act="cloudSync">${ic('refresh')}Sincronizar ahora</button>
+          <button class="small ghost" data-act="cloudSignOut">${ic('logOut')}Cerrar sesión</button>
+        </div>`
+      : `<p class="muted">Inicia sesión para guardar tu progreso en la nube y recuperarlo si cambias o pierdes el celular. Los videos se quedan solo en tu celular.</p>${cloudForm()}`}
+    </section>`;
 }
 function today() {
   const k = dateKey();
@@ -199,7 +269,8 @@ function onboarding() {
         Lo ideal es que un médico o nutriólogo lo revise. Como estudiante de CBTis tienes <b>Seguro Facultativo del IMSS</b>: la consulta es gratis.
       </div>
       <button class="primary block" type="submit">Empezar mi plan</button>
-    </form>`);
+    </form>
+    ${Cloud.enabled() ? `<details style="margin-top:16px"><summary>¿Ya tienes cuenta? Recupera tus datos</summary>${cloudForm()}</details>` : ''}`);
   $('#fProfile').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
@@ -796,7 +867,7 @@ async function renderVideos() {
     return `<div class="video-item">
       <div class="row between"><b>Semana ${m.week}</b><small class="muted">${fmtDate(m.d)} · ${(m.size / 1048576).toFixed(1)} MB</small></div>
       ${url ? `<video src="${url}" controls playsinline preload="metadata"></video>` : '<p class="muted">El archivo ya no está en la app (descargado o borrado por el sistema).</p>'}
-      <div class="row">${url ? `<button class="small" data-act="dlVideo" data-id="${m.id}">⬇ Descargar</button>` : ''}<button class="small danger" data-act="delVideo" data-id="${m.id}">Borrar</button></div>
+      <div class="row">${url ? `<button class="small" data-act="dlVideo" data-id="${m.id}">${ic('download')}Descargar</button>` : ''}<button class="small danger" data-act="delVideo" data-id="${m.id}">Borrar</button></div>
     </div>`;
   }).join('');
 }
@@ -962,12 +1033,14 @@ function viewMas() {
       </form>
     </section>
 
+    ${cloudCard()}
+
     <section class="card">
       <h2>${ic('database')}Respaldo</h2>
-      <p class="muted">Tus datos viven solo en este celular. Exporta un respaldo de vez en cuando (no incluye los videos).</p>
+      <p class="muted">${Cloud.user ? 'Ya tienes copia en la nube. Si quieres, también' : 'Sin sesión en la nube, tus datos viven solo en este celular.'} exporta un archivo de respaldo de vez en cuando (no incluye los videos).</p>
       <div class="row wrap">
-        <button class="small" data-act="export">⬇ Exportar datos</button>
-        <label class="btn small" style="margin:0;color:var(--text)">⬆ Importar<input type="file" accept="application/json" data-act="import" hidden></label>
+        <button class="small" data-act="export">${ic('download')}Exportar datos</button>
+        <label class="btn small" style="margin:0;color:var(--text)">${ic('upload')}Importar<input type="file" accept="application/json" data-act="import" hidden></label>
         <button class="small danger" data-act="reset">Borrar todo</button>
       </div>
     </section>`;
@@ -1058,6 +1131,20 @@ document.addEventListener('click', async (e) => {
   const acts = {
     closeModal, sos: showSOS, whyCalc: showWhyCalc,
     setTheme: () => setTheme(el.dataset.t),
+    cloudSync: () => cloudSync({ manual: true }),
+    cloudSignOut: async () => {
+      if (!confirm('¿Cerrar sesión? Tus datos se quedan en este celular y en la nube.')) return;
+      await Cloud.signOut(); S.cloud = null; save(false); render(); toast('Sesión cerrada');
+    },
+    cloudSignUp: async () => {
+      const f = el.closest('form');
+      if (!f.reportValidity()) return;
+      try {
+        const r = await Cloud.signUp(f.email.value.trim(), f.password.value);
+        if (r === 'in') { await cloudSync(); toast('Cuenta creada'); }
+        else openModal(`<h2>${ic('cloud')}Revisa tu correo</h2><p>Te mandamos un enlace a <b>${esc(f.email.value)}</b>. Ábrelo en este celular para confirmar tu cuenta (revisa también spam).</p><button class="block" data-act="closeModal">Entendido</button>`);
+      } catch (e) { toast(e.message, 3500); }
+    },
     cycleTheme: () => { const ks = Object.keys(THEMES); setTheme(ks[(ks.indexOf(getTheme()) + 1) % ks.length]); toast(`Tema: ${THEMES[getTheme()].n}`); },
     nextQuote: () => { S.quoteOffset++; save(); render(); },
     porque: () => openModal(`<h2>${ic('heart')}Tu porqué</h2><p class="quote">${esc(S.profile.porque)}</p><button class="block" data-act="closeModal">Cerrar</button>`),
@@ -1086,8 +1173,9 @@ document.addEventListener('click', async (e) => {
     install: async () => { installEvt?.prompt(); await installEvt?.userChoice; installEvt = null; render(); },
     export: () => downloadBlob(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }), `AxFit-respaldo-${dateKey()}.json`),
     reset: async () => {
-      if (!confirm('Esto borra TODO tu progreso y videos de este celular. ¿Seguro?')) return;
+      if (!confirm('Esto borra TODO tu progreso y videos de este celular y cierra tu sesión (la copia en la nube no se borra). ¿Seguro?')) return;
       localStorage.removeItem(STORE_KEY);
+      await Cloud.signOut();
       try { indexedDB.deleteDatabase('axfit'); } catch { /* nada */ }
       S = structuredClone(DEFAULT_STATE); location.hash = '#hoy'; render();
     },
@@ -1133,6 +1221,15 @@ document.addEventListener('submit', (e) => {
     S.notified = {};
     save(); toast('Horarios guardados. Vuelve a descargar el calendario si lo usas.');
   }
+  if (e.target.id === 'fCloud') {
+    e.preventDefault();
+    const btn = e.target.querySelector('[type=submit]'); btn.disabled = true;
+    Cloud.signIn(f.get('email').trim(), f.get('password'))
+      .then(() => cloudSync())
+      .then(() => toast(S.profile ? 'Sesión iniciada' : 'Sesión iniciada. Llena tu perfil para empezar'))
+      .catch((err) => toast(err.message, 3500))
+      .finally(() => { btn.disabled = false; });
+  }
   if (e.target.id === 'fProfileEdit') {
     e.preventDefault();
     S.profile = { ...readProfile(f), porque: S.profile.porque };
@@ -1146,7 +1243,9 @@ renderThemeBtn(); syncThemeColor();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then((r) => { swReg = r; syncSWConfig(); }).catch(() => {});
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); checkReminders(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); checkReminders(); cloudSync(); } });
+window.addEventListener('online', () => cloudSync());
 setInterval(checkReminders, 30000);
 render();
 checkReminders();
+Cloud.fromRedirect().then((ok) => { if (ok) toast('Correo confirmado. Sesión iniciada'); cloudSync(); });
