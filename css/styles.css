@@ -288,3 +288,10 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 @keyframes blink { 50% { opacity: .2; } }
 
 input[type="checkbox"] { accent-color: var(--accent); }
+
+/* Pantalla de inicio de sesión / primer uso: ocupa toda la pantalla */
+.modal.gate { background: var(--bg); align-items: center; }
+.modal.gate .sheet { border-radius: 0; max-width: 420px; max-height: 100vh; padding-top: calc(24px + env(safe-area-inset-top)); }
+.login { text-align: center; margin: 8px 0 12px; }
+.login img { border-radius: 14px; }
+.login h1 { margin: 10px 0 2px; }

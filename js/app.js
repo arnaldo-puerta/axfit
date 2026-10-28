@@ -111,18 +111,28 @@ function cloudForm() {
       </div>
     </form>`;
 }
+// Con Supabase conectado, la app no muestra nada hasta iniciar sesión.
+function locked() { return Cloud.enabled() && !Cloud.user; }
+function loginScreen() {
+  $('#view').innerHTML = '';
+  openModal(`
+    <div class="login">
+      <img src="icons/icon.svg" alt="" width="56" height="56">
+      <h1>AxFit</h1>
+      <p class="muted">Inicia sesión para entrar.</p>
+    </div>
+    ${cloudForm()}`, true);
+}
 function cloudCard() {
   if (!Cloud.enabled()) return `<section class="card"><h2>${ic('cloud')}Nube</h2><p class="muted">Falta conectar Supabase en <code>js/config.js</code>.</p></section>`;
-  const u = Cloud.user;
   return `<section class="card">
-      <h2>${ic('cloud')}Nube</h2>
-      ${u ? `<p>Sesión iniciada como <b>${esc(u.email)}</b>. Tus datos se guardan solos en Supabase cuando hay internet.</p>
-        <p class="muted" id="cloudStatus">${cloudStatus()}</p>
-        <div class="row wrap">
-          <button class="small" data-act="cloudSync">${ic('refresh')}Sincronizar ahora</button>
-          <button class="small ghost" data-act="cloudSignOut">${ic('logOut')}Cerrar sesión</button>
-        </div>`
-      : `<p class="muted">Inicia sesión para guardar tu progreso en la nube y recuperarlo si cambias o pierdes el celular. Los videos se quedan solo en tu celular.</p>${cloudForm()}`}
+      <h2>${ic('cloud')}Cuenta</h2>
+      <p>Sesión iniciada como <b>${esc(Cloud.user.email)}</b>. Tus datos se guardan solos en Supabase cuando hay internet.</p>
+      <p class="muted" id="cloudStatus">${cloudStatus()}</p>
+      <div class="row wrap">
+        <button class="small" data-act="cloudSync">${ic('refresh')}Sincronizar ahora</button>
+        <button class="small ghost" data-act="cloudSignOut">${ic('logOut')}Cerrar sesión</button>
+      </div>
     </section>`;
 }
 function today() {
@@ -213,13 +223,14 @@ function toast(msg, ms = 2200) {
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
 }
-function openModal(html) {
+function openModal(html, gate = false) {
   const m = $('#modal');
   m.innerHTML = `<div class="sheet">${html}</div>`;
+  m.classList.toggle('gate', gate);
   m.hidden = false;
 }
 function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
-$('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && S.profile) closeModal(); });
+$('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && S.profile && !locked()) closeModal(); });
 
 // ---------- Tema ----------
 const THEMES = { auto: { n: 'Auto', i: 'monitor' }, light: { n: 'Claro', i: 'sun' }, dark: { n: 'Oscuro', i: 'moon' } };
@@ -244,7 +255,9 @@ const VIEWS = { hoy: viewHoy, comida: viewComida, ejercicio: viewEjercicio, prog
 let foodDay = new Date().getDay();
 function currentTab() { const t = location.hash.slice(1); return VIEWS[t] ? t : 'hoy'; }
 function render() {
+  if (locked()) return loginScreen();
   if (!S.profile) return onboarding();
+  if ($('#modal').classList.contains('gate')) closeModal();
   const tab = currentTab();
   document.querySelectorAll('.tabbar a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
   $('#view').innerHTML = VIEWS[tab]();
@@ -269,8 +282,7 @@ function onboarding() {
         Lo ideal es que un médico o nutriólogo lo revise. Como estudiante de CBTis tienes <b>Seguro Facultativo del IMSS</b>: la consulta es gratis.
       </div>
       <button class="primary block" type="submit">Empezar mi plan</button>
-    </form>
-    ${Cloud.enabled() ? `<details style="margin-top:16px"><summary>¿Ya tienes cuenta? Recupera tus datos</summary>${cloudForm()}</details>` : ''}`);
+    </form>`, true);
   $('#fProfile').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
@@ -1129,12 +1141,21 @@ document.addEventListener('click', async (e) => {
   if (!el || el.tagName === 'INPUT') return;
   const a = el.dataset.act;
   const acts = {
-    closeModal, sos: showSOS, whyCalc: showWhyCalc,
+    closeModal: () => { closeModal(); if (locked()) render(); },
+    sos: showSOS, whyCalc: showWhyCalc,
     setTheme: () => setTheme(el.dataset.t),
     cloudSync: () => cloudSync({ manual: true }),
+    // Al salir se sube lo pendiente y se borran los datos de este celular (quedan en la nube).
     cloudSignOut: async () => {
-      if (!confirm('¿Cerrar sesión? Tus datos se quedan en este celular y en la nube.')) return;
-      await Cloud.signOut(); S.cloud = null; save(false); render(); toast('Sesión cerrada');
+      if (!confirm('¿Cerrar sesión? Tus datos se guardan en la nube y se quitan de este celular (los videos se quedan).')) return;
+      if (S.profile) {
+        try { await Cloud.upload(cloudData()); } catch (e) {
+          if (!confirm(`No se pudieron subir tus últimos cambios (${e.message}). ¿Cerrar sesión de todos modos y perderlos?`)) return;
+        }
+      }
+      await Cloud.signOut();
+      localStorage.removeItem(STORE_KEY);
+      S = structuredClone(DEFAULT_STATE); location.hash = '#hoy'; render(); toast('Sesión cerrada');
     },
     cloudSignUp: async () => {
       const f = el.closest('form');

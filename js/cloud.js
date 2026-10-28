@@ -32,6 +32,7 @@ const Cloud = (() => {
     if (/already registered/i.test(m)) return 'Ese correo ya tiene cuenta: inicia sesión';
     if (/password.*(6|characters)/i.test(m)) return 'La contraseña debe tener al menos 6 caracteres';
     if (/rate limit/i.test(m)) return 'Demasiados intentos. Espera unos minutos';
+    if (/signups? not allowed/i.test(m)) return 'El registro está cerrado: solo puede entrar la cuenta del dueño';
     return m;
   }
   // Renueva el token si está por vencer (dura 1 hora).

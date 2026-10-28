@@ -1,5 +1,5 @@
 // AxFit service worker: funciona sin internet y revisa recordatorios en segundo plano.
-const VERSION = 'axfit-v5';
+const VERSION = 'axfit-v6';
 const ASSETS = [
   './', 'index.html', 'css/styles.css', 'js/config.js', 'js/cloud.js', 'js/icons.js', 'js/data.js', 'js/app.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
